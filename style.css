@@ -215,3 +215,14 @@ button:focus {
 * {
   box-sizing: border-box;
 }
+
+.quit-label {
+  margin-left: auto;
+}
+
+.quit-text {
+  margin-top: 22px;
+  font-size: 14px;
+  color: #555;
+  padding: 6px 10px;
+}

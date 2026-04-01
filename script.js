@@ -1,7 +1,5 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const modeText = document.getElementById("mode");
-const statusText = document.getElementById("status");
 const bottomBar = document.getElementById("bottom-bar");
 
 let selectedPoint = null;
@@ -18,6 +16,8 @@ let pointColor = "#000000";
 
 let undoStack = [];
 let redoStack = [];
+
+const MAX_POLYLINES = 100; 
 
 document.addEventListener("keydown", (e) => {
   const key = e.key.toLowerCase();
@@ -54,30 +54,59 @@ document.addEventListener("keydown", (e) => {
 
   if (key === "b") {
     if (currentPolyline.length > 0) {
-      saveState();
-      polylines.push(currentPolyline);
+      if (polylines.length >= MAX_POLYLINES) {
+        updateStatus("Max 100 polylines reached!", "red");
+      } else {
+        saveState();
+        polylines.push(currentPolyline);
+      }
       currentPolyline = [];
     }
     setMode("draw");
     redraw();
   } else if (key === "m") {
     if (mode === "draw" && currentPolyline.length > 0) {
-      saveState();
-      polylines.push(currentPolyline);
+      if (polylines.length >= MAX_POLYLINES) {
+        updateStatus("Max 100 polylines reached!", "red");
+      } else {
+        saveState();
+        polylines.push(currentPolyline);
+      }
       currentPolyline = [];
     }
     setMode("move");
     redraw();
   } else if (key === "d") {
     if (mode === "draw" && currentPolyline.length > 0) {
-      saveState();
-      polylines.push(currentPolyline);
+      if (polylines.length >= MAX_POLYLINES) {
+        updateStatus("Max 100 polylines reached!", "red");
+      } else {
+        saveState();
+        polylines.push(currentPolyline);
+      }
       currentPolyline = [];
     }
     setMode("delete");
     redraw();
   } else if (key === "r") {
     refreshCanvas();
+  } else if (key === "q") {
+    e.preventDefault();
+    updateStatus("Quitting...", "red");
+
+    polylines = [];
+    currentPolyline = [];
+    selectedPoint = null;
+    hoveredPoint = null;
+    redraw();
+
+    setTimeout(() => {
+      window.close();
+      document.body.innerHTML =
+        "<h2 style='text-align:center;margin-top:20%'>Application Closed</h2>";
+    }, 300);
+
+    return;
   }
 });
 
@@ -114,6 +143,10 @@ canvas.addEventListener("click", (e) => {
   const y = e.clientY - rect.top;
 
   if (mode === "draw") {
+    if (polylines.length >= MAX_POLYLINES && currentPolyline.length === 0) {
+      updateStatus("Max 100 polylines reached!", "red");
+      return;
+    }
     saveState();
     currentPolyline.push({ x, y });
     redraw();
@@ -151,9 +184,7 @@ canvas.addEventListener("click", (e) => {
 
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  polylines.forEach((polyline, index) => {
-    drawPolyline(polyline, index);
-  });
+  polylines.forEach((polyline, index) => drawPolyline(polyline, index));
   drawPolyline(currentPolyline, null);
 }
 
@@ -202,12 +233,9 @@ function drawPolyline(points, polylineIndex = null) {
     ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";
   });
-  if (
-    mode === "draw" &&
-    points === currentPolyline &&
-    points.length > 0 &&
-    mousePos
-  ) {
+
+  // Draw current mouse line in draw mode
+  if (mode === "draw" && points === currentPolyline && points.length > 0 && mousePos) {
     const last = points[points.length - 1];
     ctx.beginPath();
     ctx.moveTo(last.x, last.y);
@@ -245,17 +273,14 @@ document.getElementById("lineColor").addEventListener("input", (e) => {
   lineColor = e.target.value;
   redraw();
 });
-
 document.getElementById("lineWidth").addEventListener("input", (e) => {
   lineWidth = parseInt(e.target.value);
   redraw();
 });
-
 document.getElementById("pointRadius").addEventListener("input", (e) => {
   pointRadius = parseInt(e.target.value);
   redraw();
 });
-
 document.getElementById("pointColor").addEventListener("input", (e) => {
   pointColor = e.target.value;
   redraw();
@@ -263,10 +288,7 @@ document.getElementById("pointColor").addEventListener("input", (e) => {
 
 function setMode(newMode) {
   mode = newMode.toLowerCase();
-
-  document
-    .querySelectorAll(".mode-btn")
-    .forEach((btn) => btn.classList.remove("active"));
+  document.querySelectorAll(".mode-btn").forEach((btn) => btn.classList.remove("active"));
 
   let btnId = null;
   if (mode === "draw") btnId = "btnDraw";
@@ -281,13 +303,16 @@ function setMode(newMode) {
 
 document.querySelectorAll(".mode-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const btnMode = btn.getAttribute("data-mode"); // safer than dataset.mode
-
+    const btnMode = btn.getAttribute("data-mode");
     if (btnMode === "refresh") {
       refreshCanvas();
     } else {
       if (mode === "draw" && currentPolyline.length > 0) {
-        polylines.push(currentPolyline);
+        if (polylines.length >= MAX_POLYLINES) {
+          updateStatus("Max 100 polylines reached!", "red");
+        } else {
+          polylines.push(currentPolyline);
+        }
         currentPolyline = [];
       }
       setMode(btnMode);
@@ -313,49 +338,14 @@ function refreshCanvas() {
 }
 
 function saveState() {
-  undoStack.push(
-    JSON.parse(
-      JSON.stringify({
-        polylines,
-        currentPolyline,
-      })
-    )
-  );
+  undoStack.push(JSON.parse(JSON.stringify({ polylines, currentPolyline })));
   redoStack = [];
 }
-function undo() {
-  if (undoStack.length === 0) return;
-
-  redoStack.push(
-    JSON.parse(
-      JSON.stringify({
-        polylines,
-        currentPolyline,
-      })
-    )
-  );
-
-  const prevState = undoStack.pop();
-
-  polylines = prevState.polylines;
-  currentPolyline = prevState.currentPolyline;
-
-  redraw();
-  updateStatus("Undo performed", "#f59e0b");
-}
 
 function undo() {
   if (undoStack.length === 0) return;
 
-  redoStack.push(
-    JSON.parse(
-      JSON.stringify({
-        polylines,
-        currentPolyline,
-      })
-    )
-  );
-
+  redoStack.push(JSON.parse(JSON.stringify({ polylines, currentPolyline })));
   const prevState = undoStack.pop();
 
   polylines = prevState.polylines;
@@ -365,35 +355,25 @@ function undo() {
   redraw();
   updateStatus("Undo performed", "#f59e0b");
 }
+
 function redo() {
   if (redoStack.length === 0) return;
 
-  undoStack.push(
-    JSON.parse(
-      JSON.stringify({
-        polylines,
-        currentPolyline,
-      })
-    )
-  );
-
+  undoStack.push(JSON.parse(JSON.stringify({ polylines, currentPolyline })));
   const nextState = redoStack.pop();
 
   polylines = nextState.polylines;
   currentPolyline = nextState.currentPolyline;
-
   redraw();
   updateStatus("Redo performed", "#10b981");
 }
 
 function clearCanvas() {
   saveState();
-
   polylines = [];
   currentPolyline = [];
   selectedPoint = null;
   hoveredPoint = null;
-
   redraw();
   updateStatus("Canvas cleared", "red");
 }
@@ -403,7 +383,6 @@ function exportPNG() {
   link.download = "canvas.png";
   link.href = canvas.toDataURL("image/png");
   link.click();
-
   updateStatus("Exported as PNG", "#0369a1");
 }
 

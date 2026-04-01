@@ -407,6 +407,15 @@ function exportPNG() {
   updateStatus("Exported as PNG", "#0369a1");
 }
 
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  redraw();
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
 document.getElementById("btnUndo")?.addEventListener("click", undo);
 document.getElementById("btnRedo")?.addEventListener("click", redo);
 document.getElementById("btnClear")?.addEventListener("click", clearCanvas);

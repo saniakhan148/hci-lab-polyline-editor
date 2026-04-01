@@ -172,7 +172,6 @@ margin-top: 10px;
   transform: translateY(-2px) scale(1.03);
 }
 
-/* DANGER */
 .mode-btn.danger {
   background: #fff1f2;
   color: #e11d48;
@@ -184,15 +183,16 @@ margin-top: 10px;
 }
 
 canvas {
+  width: 73vw;       
+  max-width: 950px; 
+  height: 32vw;     
+  max-height: 430px; 
   border-radius: 14px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
-
-  box-shadow: 
-    inset 0 0 0 1px #f1f5f9,
-    0 10px 25px rgba(0,0,0,0.08);
+  box-shadow: inset 0 0 0 1px #f1f5f9,
+              0 8px 20px rgba(0,0,0,0.08);
 }
-
 #bottom-bar {
   margin-top: 10px;
   padding: 10px 12px;
